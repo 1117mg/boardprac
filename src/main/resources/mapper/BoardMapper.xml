@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="org.example.yl.repository.BoardMapper">
+    <select id="getboardList" resultType="org.example.yl.model.BoardDto">
+        SELECT * FROM board
+        WHERE deleteYN != 1
+    </select>
+
+    <select id="getpostDetailbypostId" resultType="org.example.yl.model.BoardDto">
+        SELECT bno, title, content, regdate, hit, userId, filename, filepath, filepaths FROM board
+        WHERE deleteYN != 1 AND bno = #{bno}
+    </select>
+
+    <insert id="insertPost" parameterType="org.example.yl.model.BoardDto">
+        INSERT INTO board
+        (title, content, userId, regdate, filename, filepaths)
+        VALUES (#{title}, #{content}, #{userId},NOW(), #{filename}, #{fileList, typeHandler=org.example.yl.StringListTypeHandler})
+    </insert>
+
+    <update id="updatePost" parameterType="org.example.yl.model.BoardDto">
+        UPDATE board
+        SET title = #{title}, content = #{content}, userId = #{userId}, regdate=NOW(), filename, filepaths = #{fileList, typeHandler=org.example.yl.StringListTypeHandler}
+        WHERE bno = #{bno}
+    </update>
+
+    <delete id="deletePostbypostId" parameterType="_int">
+        UPDATE board SET deleteYN = 1
+        WHERE bno = #{postId}
+    </delete>
+
+    <select id="getSearchedPostPage" parameterType="map" resultType="org.example.yl.model.BoardDto">
+        SELECT * FROM board
+        WHERE title LIKE CONCAT('%', #{query}, '%')
+        OR content LIKE CONCAT('%', #{query},'%')
+        AND (deleteYN != 1) ORDER BY bno DESC LIMIT #{offset}, #{postperPage}
+    </select>
+
+    <select id="getPostbyPage" parameterType="map" resultType="org.example.yl.model.BoardDto">
+        SELECT * FROM board
+        WHERE deleteYN != 1
+        ORDER BY bno DESC
+            LIMIT #{offset}, #{postperPage}
+    </select>
+
+    <select id="countPosts" resultType="_int">
+        SELECT COUNT(bno) FROM board
+        WHERE deleteYN != 1
+    </select>
+
+    <select id="searchedPostCount" resultType="_int">
+        SELECT COUNT(bno) FROM board
+        WHERE title LIKE CONCAT('%', #{query}, '%')
+        OR content LIKE CONCAT('%', #{query}, '%')
+        AND deleteYN != 1
+    </select>
+
+    <select id="searchedPostList" parameterType="String" resultType="org.example.yl.model.BoardDto">
+        SELECT * FROM board
+        WHERE title LIKE CONCAT('%', #{query}, '%')
+        OR content LIKE CONCAT('%', #{query},'%')
+        AND deleteYN != 1
+    </select>
+
+    <update id="hit" parameterType="org.example.yl.model.BoardDto">
+        UPDATE board SET hit = hit + 1
+        WHERE bno = #{bno}
+    </update>
+</mapper>
