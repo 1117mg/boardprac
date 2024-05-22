@@ -3,30 +3,67 @@
 
 <mapper namespace="org.example.yl.repository.BoardMapper">
     <select id="getboardList" resultType="org.example.yl.model.BoardDto">
-        SELECT * FROM board
+        SELECT b.*
+             , CASE WHEN COUNT(*)  <![CDATA[>]]> 1
+                        THEN CONCAT(f.file_name, '외 ' , COUNT(*)-1, '건')
+                    ELSE f.file_name
+            END file_name
+        FROM board b
         WHERE deleteYN != 1
+        LEFT JOIN file f
+        ON b.bno = f.bno
+        GROUP BY b.bno
+        ORDER BY b.bno DESC
+        LIMIT #{offset}, #{postperPage}
     </select>
 
     <select id="getpostDetailbypostId" resultType="org.example.yl.model.BoardDto">
-        SELECT bno, title, content, regdate, hit, userId, filename, filepath, filepaths FROM board
+        SELECT bno, title, content, regdate, hit, userId FROM board
         WHERE deleteYN != 1 AND bno = #{bno}
+    </select>
+
+    <!--첨부파일 리스트-->
+    <select id="getFile" resultType="org.example.yl.model.FileDto"
+                        parameterType="org.example.yl.model.BoardDto">
+        SELECT *
+        FROM file
+        WHERE bno = #{bno} AND file_type=#{fileType}
     </select>
 
     <insert id="insertPost" parameterType="org.example.yl.model.BoardDto">
         INSERT INTO board
-        (title, content, userId, regdate, filename, filepaths)
-        VALUES (#{title}, #{content}, #{userId},NOW(), #{filename}, #{fileList, typeHandler=org.example.yl.StringListTypeHandler})
+        (title, content, userId, regdate)
+        VALUES (#{title}, #{content}, #{userId},NOW())
+        <selectKey resultType="int" keyProperty="bno" order="AFTER">
+            SELECT LAST_INSERT_ID()
+        </selectKey>
+    </insert>
+
+    <!--첨부파일 등록-->
+    <insert id="insertFile" parameterType="org.example.yl.model.BoardDto">
+        INSERT INTO file(bno, uuid, file_name, content_type, file_type)
+        VALUES
+        <foreach collection="list" separator="," index="index" item="item">
+            (#{bno}, #{item.uuid}, #{item.fileName}, #{item.contentType}, 1)
+        </foreach>
     </insert>
 
     <update id="updatePost" parameterType="org.example.yl.model.BoardDto">
         UPDATE board
-        SET title = #{title}, content = #{content}, userId = #{userId}, regdate=NOW(), filename, filepaths = #{fileList, typeHandler=org.example.yl.StringListTypeHandler}
+        SET title = #{title}, content = #{content}, userId = #{userId}, regdate=NOW()
         WHERE bno = #{bno}
     </update>
 
     <delete id="deletePostbypostId" parameterType="_int">
         UPDATE board SET deleteYN = 1
         WHERE bno = #{postId}
+    </delete>
+
+    <!--첨부파일 삭제-->
+    <delete id="deleteFile" parameterType="org.example.yl.model.BoardDto">
+        DELETE
+        FROM file
+        WHERE bno = #{bno}
     </delete>
 
     <select id="getSearchedPostPage" parameterType="map" resultType="org.example.yl.model.BoardDto">

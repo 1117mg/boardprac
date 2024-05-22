@@ -56,18 +56,20 @@
                 <div class="post-content" id="post-content" style="height: 500px;">${post.content}</div>
 
                 <!-- 이미지 파일 표시 -->
-                <c:choose>
-                    <c:when test="${not empty post.filepaths}">
-                        <c:forEach var="filepath" items="${post.filepaths}">
-                            <div class="image-container">
-                                <img src="${filepath}" alt="게시물 이미지">
-                            </div>
-                        </c:forEach>
-                    </c:when>
-                    <c:otherwise>
-                        <h1></h1>
-                    </c:otherwise>
-                </c:choose>
+                <c:forEach items="${file}" var="file" varStatus="status">
+                    <c:choose>
+                        <c:when test="${not empty file.uuid}">
+                            <c:forEach var="filepath" items="${file.uuid}">
+                                <div class="image-container">
+                                    <img src="/image/${file.uuid}_${file.fileName}" alt="게시물 이미지">
+                                </div>
+                            </c:forEach>
+                        </c:when>
+                        <c:otherwise>
+                            <h1></h1>
+                        </c:otherwise>
+                    </c:choose>
+                </c:forEach>
 
 
                 <div class="line" style="height:2px;"></div>

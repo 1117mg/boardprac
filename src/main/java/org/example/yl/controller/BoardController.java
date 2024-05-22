@@ -1,28 +1,27 @@
 package org.example.yl.controller;
 
 import org.example.yl.model.BoardDto;
+import org.example.yl.model.FileDto;
 import org.example.yl.service.BoardService;
-import org.example.yl.util.PhotoUtil;
+import org.example.yl.util.FileUtil;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.Resource;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-import org.springframework.web.multipart.MultipartHttpServletRequest;
-import org.springframework.web.servlet.ModelAndView;
 
 import javax.servlet.http.HttpSession;
 import java.io.IOException;
+import java.util.List;
 
 @Controller
 public class BoardController {
 
     @Autowired
     private BoardService service;
-    @Autowired
-    private PhotoUtil photoUtil;
 
     @GetMapping("/main")
     public String pagination(@RequestParam(value="page", defaultValue = "1") int page, Model model) {
@@ -44,40 +43,26 @@ public class BoardController {
         BoardDto post = service.getpostDetailbypostId(board);
         service.hit(board);
         model.addAttribute("post", post);
+        model.addAttribute("file", service.getFile(post));
         return "board/boardDetail";
     }
-
-    /*@RequestMapping("/write")
-    public String write(BoardDto post, HttpSession session, MultipartFile imageFile, Model model) throws IOException {
-        String userId = (String) session.getAttribute("userId");
-        post.setUserId(userId);
-        BoardDto updatePost = service.updatePost(post);
-        model.addAttribute("post", updatePost);
-        return "board/boardWrite";
-    }
-
-    @RequestMapping("/insertpost")
-    public String insertpost(BoardDto post, MultipartFile imageFile, HttpSession session) throws IOException {
-        String userId = (String) session.getAttribute("userId");
-        post.setUserId(userId);
-        service.insertpost(post, imageFile);
-        return "redirect:/main";
-    }*/
 
     @RequestMapping("/write")
     public String write(BoardDto post, HttpSession session, Model model) throws IOException {
         String userId = (String) session.getAttribute("userId");
         post.setUserId(userId);
-        BoardDto updatePost = service.updatePost(post);
-        model.addAttribute("post", updatePost);
+        if (post.getBno()!=null){
+            model.addAttribute("getBoard", service.getpostDetailbypostId(post));
+            model.addAttribute("getFile", service.getFile(post));
+        }
         return "board/boardWrite";
     }
 
     @RequestMapping("/insertpost")
-    public String insertpost(BoardDto post, MultipartFile[] imageFiles, HttpSession session) throws IOException {
+    public String insertpost(BoardDto post, HttpSession session) throws IOException {
         String userId = (String) session.getAttribute("userId");
         post.setUserId(userId);
-        service.insertpost(post, imageFiles);
+        service.insertpost(post);
         return "redirect:/main";
     }
 
@@ -92,12 +77,18 @@ public class BoardController {
         }
     }
 
-    /*@PostMapping("/upload")
-    public ModelAndView uplpoad(MultipartHttpServletRequest request){
-        ModelAndView mav = new ModelAndView("jsonView");
-        String uploadPath= photoUtil.ckUpload(request);
-        mav.addObject("uploaded", true);
-        mav.addObject("url", uploadPath);
-        return mav;
-    }*/
+    /*ajax로 첨부파일 처리*/
+    @RequestMapping("/ajaxFile")
+    @ResponseBody
+    public List<FileDto> ajaxFile(@RequestParam("files") MultipartFile[] imageFiles) throws IOException {
+        // 파일 등록
+        List<FileDto> fileList = FileUtil.uploadFile(imageFiles);
+        return fileList;
+    }
+
+    /*파일 다운로드*/
+    @RequestMapping("/downloadFile")
+    public ResponseEntity<Resource> downloadFile(@ModelAttribute FileDto fileDto) throws IOException {
+        return service.downloadFile(fileDto);
+    }
 }

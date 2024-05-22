@@ -1,14 +1,25 @@
 package org.example.yl.service;
 
 import org.example.yl.model.BoardDto;
+import org.example.yl.model.FileDto;
 import org.example.yl.repository.BoardMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Primary;
+import org.springframework.core.io.InputStreamResource;
+import org.springframework.core.io.Resource;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.*;
 
 @Primary
@@ -47,51 +58,63 @@ public class BoardService {
         return mapper.getpostDetailbypostId(post);
     }
 
+    // 파일 다운로드
+    public ResponseEntity<Resource> downloadFile(FileDto fileDto) throws IOException {
+        // 파일 저장 경로 설정
+        String filePath = "D:\\image";
+        Path path = Paths.get(filePath + "/" + fileDto.getUuid() + "_" + fileDto.getFileName());
+        String contentType = Files.probeContentType(path);
+        // header를 통해서 다운로드 되는 파일의 정보를 설정한다.
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentDisposition(ContentDisposition.builder("attachment")
+                .filename(fileDto.getFileName(), StandardCharsets.UTF_8)
+                .build());
+        headers.add(HttpHeaders.CONTENT_TYPE, contentType);
+
+        Resource resource = new InputStreamResource(Files.newInputStream(path));
+
+        return new ResponseEntity<>(resource, headers, HttpStatus.OK);
+    }
+
     // 게시판, 파일 (등록, 수정, 삭제)
-    public void insertpost(BoardDto post, MultipartFile[] imageFiles) throws IOException {
+    public void insertpost(BoardDto post) throws IOException {
         if (post.getTitle() == null || post.getTitle().trim().isEmpty() ||
                 post.getContent() == null || post.getContent().trim().isEmpty()) {
             throw new IllegalArgumentException("제목 및 내용을 입력하세요.");
         }
+
         if (post.getBno() != null) {
-            // 이미지 파일이 있는 경우에만 파일 처리를 수행합니다.
-            if (imageFiles != null && imageFiles.length > 0) {
-                List<String> fileList = new ArrayList<>();
-                for (MultipartFile imageFile : imageFiles) {
-                    String projectPath = "D:\\image"; // D 드라이브의 "image" 폴더 경로
-                    UUID uuid = UUID.randomUUID();
-                    String filename = uuid + "_" + imageFile.getOriginalFilename();
-                    File saveFile = new File(projectPath, filename);
-                    imageFile.transferTo(saveFile);
-
-                    post.setFilename(filename);
-                    String filepath = "/image/" + filename;
-                    fileList.add(filepath); // 파일 경로를 리스트에 추가
-                }
-                post.setFileList(fileList); // 게시물 객체에 파일 경로 리스트 설정
-                mapper.updatePost(post); // 글 수정
-            }
+            mapper.deleteFile(post);
+        }
+        if (post.getBno() != null) {
+            mapper.updatePost(post);
         } else {
-            // 글 등록 시에는 파일 처리를 수행합니다.
-            if (imageFiles != null && imageFiles.length > 0) {
-                List<String> fileList = new ArrayList<>();
-                for (MultipartFile imageFile : imageFiles) {
-                    String projectPath = "D:\\image"; // D 드라이브의 "image" 폴더 경로
-                    UUID uuid = UUID.randomUUID();
-                    String filename = uuid + "_" + imageFile.getOriginalFilename();
-                    File saveFile = new File(projectPath, filename);
-                    imageFile.transferTo(saveFile);
+            mapper.insertPost(post);
+        }
+        // 파일 이름 유니크하게 생성
+        List<FileDto> list = new ArrayList<>();
+        String[] uuids = post.getUuids();
+        String[] fileNames = post.getFileNames();
+        String[] contentTypes = post.getContentTypes();
+        int fileType=1;
 
-                    post.setFilename(filename);
-                    String filepath = "/image/" + filename;
-                    fileList.add(filepath); // 파일 경로를 리스트에 추가
-                }
-                post.setFileList(fileList); // 게시물 객체에 파일 경로 리스트 설정
-                mapper.insertPost(post); // 글 등록
+        if(uuids!=null){
+            for(int i=0;i<uuids.length;i++){
+                FileDto fileDto = new FileDto();
+                fileDto.setFileName(fileNames[i]);
+                fileDto.setUuid(uuids[i]);
+                fileDto.setContentType(contentTypes[i]);
+                fileDto.setFileType(fileType);
+                list.add(fileDto);
             }
         }
-    }
 
+        // 첨부파일 등록 (게시글이 있을경우)
+        if (!list.isEmpty()) {
+            post.setList(list);
+            mapper.insertFile(post);
+        }
+    }
 
 
     public boolean deletePostbypostId(int postId) {
@@ -141,12 +164,8 @@ public class BoardService {
         mapper.hit(board);
     }
 
-
-    public BoardDto updatePost(BoardDto post) {
-        if(post.getBno()!=null){
-            return getpostDetailbypostId(post);
-        }else{
-            return new BoardDto();
-        }
-    }
+    // 첨부파일 리스트
+    public List<FileDto> getFile (BoardDto post) {
+        post.setFileType(1);
+        return mapper.getFile(post);}
 }

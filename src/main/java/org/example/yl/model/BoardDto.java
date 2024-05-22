@@ -13,13 +13,13 @@ public class BoardDto {
     private Date regdate;
     private int hit;
     private String userId;
+    private Integer fileType;
 
-    // 이미지 파일
-    private String filename;
-    private String filepath;
-    private String filepaths;
-
-    // 게시물 객체에 이미지 파일 경로 리스트를 저장하기 위한 List<String> 속성 추가
-    private List<String> fileList;
+    /*첨부파일*/
+    private List<FileDto> list;
+    private String fileName;        // 파일 이름
+    private String[] uuids;
+    private String[] fileNames;
+    private String[] contentTypes;
 
 }

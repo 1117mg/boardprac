@@ -2,6 +2,7 @@ package org.example.yl.repository;
 
 import org.apache.ibatis.annotations.Mapper;
 import org.example.yl.model.BoardDto;
+import org.example.yl.model.FileDto;
 
 import java.util.List;
 import java.util.Map;
@@ -14,6 +15,9 @@ public interface BoardMapper {
     BoardDto getpostDetailbypostId(BoardDto post);
 
     void insertPost(BoardDto post);
+
+    // 파일 등록
+    void insertFile(BoardDto post);
 
     void updatePost(BoardDto post);
 
@@ -31,4 +35,8 @@ public interface BoardMapper {
 
     int hit(BoardDto board);
 
+    // 파일 삭제
+    void deleteFile(BoardDto boardDto);
+
+    List<FileDto> getFile (BoardDto post);
 }
